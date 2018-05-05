@@ -394,6 +394,13 @@ WORDS = {
     by
     to
   },
+
+  delims: [
+    " ",
+    ", ",
+    " and ",
+    ", and ",
+  ],
 }
 
 def rw(type, num = 1)
@@ -525,4 +532,4 @@ def pack_source
 end
     
 # pack_source
-run
+pack_source

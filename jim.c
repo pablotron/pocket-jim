@@ -1,9 +1,23 @@
-#include <string.h> // memcpy()
 #include "jim.h"
-
-#ifndef PROGMEM
+#ifdef __AVR_ARCH__
+#include <avr/pgmspace.h> // for PROGMEM, memcpy_P
+#define GET_WORD_OFFSET(words, id) pgm_read_word_near((words) + (2 * (id) + 0))
+#define GET_WORD_LENGTH(words, id) pgm_read_word_near((words) + (2 * (id) + 1))
+#else /* !__AVR_ARCH__ */
+#include <string.h> // memcpy()
 #define PROGMEM
-#endif /* PROGMEM */
+#define memcpy_P memcpy
+#define GET_WORD_OFFSET(words, id) words[2 * (id) + 0]
+#define GET_WORD_LENGTH(words, id) words[2 * (id) + 1]
+#endif /* __AVR_ARCH__ */
+
+typedef enum {
+  DELIM_SPACE,
+  DELIM_COMMA,
+  DELIM_AND,
+  DELIM_COMMA_AND,
+  DELIM_LAST,
+} delim_t;
 
 static const char TEXT[] PROGMEM =
   "appropriatelyassertivelyauthoritativelycollaborativelycompellinglycompet"
@@ -61,9 +75,9 @@ static const char TEXT[] PROGMEM =
   "ctsquality vectorsrelationshipsresourcesresultsROIscenariosschemasservic"
   "essolutionssourcesstrategic theme areasstoragesupply chainssynergysystem"
   "stechnologiestechnologytesting procedurestotal linkageusersvaluevortalsw"
-  "eb-readinessweb servicesforandwhilebyto  "
+  "eb-readinessweb servicesforandwhilebyto ,  and , and   "
 ;
-#define TEXT_LEN 3999
+#define TEXT_LEN 4013
 
 static const uint16_t ADVERBS[] PROGMEM = {
   0, 13, // "appropriately"
@@ -459,7 +473,14 @@ static const uint16_t JOINS[] PROGMEM = {
   3997, 2, // "to"
 };
 #define NUM_JOINS 5
-#define TOTAL_WORDS 379
+static const uint16_t DELIMS[] PROGMEM = {
+  3999, 1, // " "
+  4000, 2, // ", "
+  4002, 5, // " and "
+  4007, 6, // ", and "
+};
+#define NUM_DELIMS 4
+#define TOTAL_WORDS 383
 #define MAX_WORD_LEN 30
 
 static uint16_t
@@ -531,6 +552,35 @@ jim_sentence_init(
 }
 
 static void
+send_word(
+  const jim_sentence_t * const sentence,
+  const uint16_t * const words,
+  const uint16_t word_id,
+  char * const buf,
+  void (*text_cb)(const jim_sentence_t * const, const char * const)
+) {
+  const uint16_t ofs = GET_WORD_OFFSET(words, word_id),
+                 len = GET_WORD_LENGTH(words, word_id);
+
+  // populate/terminate buffer
+  memcpy_P(buf, TEXT + ofs, len);
+  buf[len] = '\0';
+
+  // send word
+  text_cb(sentence, buf);
+}
+
+static void
+send_delim(
+  const jim_sentence_t * const sentence,
+  const delim_t delim,
+  char * const buf,
+  void (*text_cb)(const jim_sentence_t * const, const char * const)
+) {
+  send_word(sentence, DELIMS, delim, buf, text_cb);
+}
+
+static void
 jim_phrase_emit(
   const jim_sentence_t * const sentence,
   const jim_phrase_t * const phrase,
@@ -539,108 +589,67 @@ jim_phrase_emit(
 ) {
   // adverb
   if (phrase->has_adverb) {
-    const uint16_t ofs = ADVERBS[2 * phrase->adverb + 0],
-                   len = ADVERBS[2 * phrase->adverb + 1];
-
-    // populate/send buffer
-    memcpy(buf, TEXT + ofs, len);
-    buf[len] = '\0';
-
-    // send adverb
-    text_cb(sentence, buf);
-
-    // send space
-    text_cb(sentence, " ");
+    // send adverb, send space
+    send_word(sentence, ADVERBS, phrase->adverb, buf, text_cb);
+    send_delim(sentence, DELIM_SPACE, buf, text_cb);
   }
 
   // verb
   {
-    const uint16_t ofs = VERBS[2 * phrase->verb + 0],
-                   len = VERBS[2 * phrase->verb + 1];
-
-    // populate/send buffer
-    memcpy(buf, TEXT + ofs, len);
-    buf[len] = '\0';
-
-    // send verb
-    text_cb(sentence, buf);
-
-    // send space
-    text_cb(sentence, " ");
+    // send verb, send space
+    send_word(sentence, VERBS, phrase->verb, buf, text_cb);
+    send_delim(sentence, DELIM_SPACE, buf, text_cb);
   }
 
   // adjectives
   for (uint8_t i = 0; i < phrase->num_adjectives; i++) {
-    const uint16_t ofs = ADJECTIVES[2 * phrase->adjectives[i] + 0],
-                   len = ADJECTIVES[2 * phrase->adjectives[i] + 1];
-
-    // populate/send buffer
-    memcpy(buf, TEXT + ofs, len);
-    buf[len] = '\0';
-
-    // send verb
-    text_cb(sentence, buf);
+    // send adjective
+    send_word(sentence, ADJECTIVES, phrase->adjectives[i], buf, text_cb);
 
     if (phrase->num_adjectives == 1) {
-      text_cb(sentence, " ");
+      // send tail space
+      send_delim(sentence, DELIM_SPACE, buf, text_cb);
     } else if (phrase->num_adjectives == 2) {
       if (i == 0) {
-        // send " and "
-        text_cb(sentence, " and ");
+        // send delimiting " and "
+        send_delim(sentence, DELIM_AND, buf, text_cb);
       } else {
-        text_cb(sentence, " ");
+        // send tail " "
+        send_delim(sentence, DELIM_SPACE, buf, text_cb);
       }
     } else if (phrase->num_adjectives > 2) { 
       if (i == phrase->num_adjectives - 2) {
-        text_cb(sentence, ", and ");
+        // send ", and " before final adjective
+        send_delim(sentence, DELIM_COMMA_AND, buf, text_cb);
       } else if (i < phrase->num_adjectives - 2) {
-        text_cb(sentence, ", ");
+        // send delimiting ", "
+        send_delim(sentence, DELIM_COMMA, buf, text_cb);
       } else {
-        text_cb(sentence, " ");
+        // send tail " "
+        send_delim(sentence, DELIM_SPACE, buf, text_cb);
       }
     }
   }
 
-  // noun
-  {
-    const uint16_t ofs = NOUNS[2 * phrase->noun + 0],
-                   len = NOUNS[2 * phrase->noun + 1];
-
-    // populate/send buffer
-    memcpy(buf, TEXT + ofs, len);
-    buf[len] = '\0';
-
-    // send verb
-    text_cb(sentence, buf);
-  }
+  // send noun
+  send_word(sentence, NOUNS, phrase->noun, buf, text_cb);
 }
 
 void
 jim_sentence_emit(
-  const jim_sentence_t * const s,
+  const jim_sentence_t * const sentence,
   char * const buf,
   void (*text_cb)(const jim_sentence_t * const, const char * const)
 ) {
-  for (uint8_t i = 0; i < s->num_phrases; i++) {
-    jim_phrase_emit(s, s->phrases + i, buf, text_cb);
+  for (uint8_t i = 0; i < sentence->num_phrases; i++) {
+    jim_phrase_emit(sentence, sentence->phrases + i, buf, text_cb);
 
     // send join word
-    if (s->num_phrases > 1 && i < (s->num_phrases - 1)) {
-      const uint16_t ofs = JOINS[2 * s->joins[i] + 0],
-                     len = JOINS[2 * s->joins[i] + 1];
-
-      // send space
-      text_cb(s, " ");
-
-      // populate/send buffer
-      memcpy(buf, TEXT + ofs, len);
-      buf[len] = '\0';
-
-      // send join
-      text_cb(s, buf);
-
-      // send space
-      text_cb(s, " ");
+    if (sentence->num_phrases > 1 && i < (sentence->num_phrases - 1)) {
+      // send space, join, space
+      send_delim(sentence, DELIM_SPACE, buf, text_cb);
+      send_word(sentence, JOINS, sentence->joins[i], buf, text_cb);
+      send_delim(sentence, DELIM_SPACE, buf, text_cb);
     }
   }
 }
