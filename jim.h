@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 
-// buffer length (must be max_word_len + 1)
+// buffer length (must be > max_word_len + 1)
 #define JIM_BUF_LEN 32
 
 typedef struct {
@@ -51,7 +51,7 @@ jim_sentence_get_data(
 );
 
 #ifdef __cplusplus
-};
+}
 #endif /* __cplusplus */
 
 #endif /* JIM_H */
