@@ -1,7 +1,7 @@
 CC=cc
 OBJS=test.o jim.o
 CFLAGS=-W -Wall -Werror -Wextra -pedantic -O2
-APP=jim
+APP=jim-test
 
 .PHONY=all clean
 
