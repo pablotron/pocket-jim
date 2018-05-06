@@ -1,2 +1,2 @@
 *.o
-test/jim-test
+src/test/jim-test

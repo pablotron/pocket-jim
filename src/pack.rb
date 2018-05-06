@@ -2,7 +2,7 @@
 
 #
 # pack.rb - Generate packed word list for ../jim/jim.c from
-# ../data/words.yaml.
+# ../words.yaml.
 #
 
 require 'yaml'
@@ -13,7 +13,7 @@ module Jim
   #
   class SourcePacker
     # path to default YAML file (if unspecified)
-    DEFAULT_YAML_PATH = File.join('..', 'data', 'words.yaml')
+    DEFAULT_YAML_PATH = File.join('..', 'words.yaml')
 
     #
     # CLI invocation.
