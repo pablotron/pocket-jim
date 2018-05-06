@@ -1,8 +1,7 @@
 #!/usr/bin/env ruby
 
 #
-# pack.rb - Generate packed word list for ../jim/jim.c from
-# ../words.yaml.
+# pack.rb - Generate packed word list for jim/jim.c from words.yaml.
 #
 
 require 'yaml'
@@ -12,15 +11,12 @@ module Jim
   # Generate source for packed word list from words.yaml.
   #
   class SourcePacker
-    # path to default YAML file (if unspecified)
-    DEFAULT_YAML_PATH = File.join('..', 'words.yaml')
-
     #
     # CLI invocation.
     #
     def self.run(app, args)
       # get yaml path
-      yaml_path = ARGV.shift || File.join(File.dirname(app), DEFAULT_YAML_PATH)
+      yaml_path = ARGV.shift || File.join(File.dirname(app), 'words.yaml')
 
       # create/run packer
       SourcePacker.new(app, yaml_path).run(STDOUT)
