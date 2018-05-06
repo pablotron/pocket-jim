@@ -8,5 +8,5 @@ Pocket corporate gibberish generator.
   * [test/](): simple test application
   * [data/](): word list, screenshots
 
-![shot 1](data/ims/shot-1.jpg)
-![shot 2](data/ims/shot-2.jpg)
+![shot 1](data/ims/shot-1.jpg){:class="img-responsive"}
+![shot 2](data/ims/shot-2.jpg){:class="img-responsive"}
