@@ -16,7 +16,7 @@ module Jim
     #
     def self.run(app, args)
       # get yaml path
-      yaml_path = ARGV.shift || File.join(File.dirname(app), 'words.yaml')
+      yaml_path = ARGV.shift || File.join(File.dirname(app), 'data', 'words.yaml')
 
       # create/run packer
       SourcePacker.new(app, yaml_path).run(STDOUT)
