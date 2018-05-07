@@ -12,8 +12,11 @@
 // delay (ms) for debounce detection
 #define DEBOUNCE_DELAY 20
 
-// button digital pin
-#define BUTTON_PIN 2
+// button pins
+#define B1_PIN 3
+#define B2_PIN 4
+#define B3_PIN 5
+#define B4_PIN 6
 
 typedef enum {
   STATE_INIT,
@@ -66,8 +69,11 @@ void setup() {
   // init A0 (used as RNG seed)
   pinMode(A0, INPUT);
 
-  // init button pin
-  pinMode(BUTTON_PIN, INPUT);
+  // init button pins and enable internal pull-up resistor
+  for (int i = 3; i < 7; i++) {
+    pinMode(i, INPUT);
+    digitalWrite(i, HIGH);
+  }
 
   // init LED_BUILTIN pin
   pinMode(LED_BUILTIN, OUTPUT);
@@ -128,9 +134,21 @@ void loop() {
     // disable LED
     digitalWrite(LED_BUILTIN, LOW);
     
-    if (digitalRead(BUTTON_PIN) == HIGH) {
+    if (digitalRead(B1_PIN) == LOW) {
       // set debounce delay
       timer = millis() + DEBOUNCE_DELAY;
+      state = STATE_MAYBE_DOWN;
+    } else if (digitalRead(B2_PIN) == LOW) {
+      display.print(F("B2")); // FIXME: test b2
+      display.display();
+      state = STATE_MAYBE_DOWN;
+    } else if (digitalRead(B3_PIN) == LOW) {
+      display.print(F("B3")); // FIXME: test b3
+      display.display();
+      state = STATE_MAYBE_DOWN;
+    } else if (digitalRead(B4_PIN) == LOW) {
+      display.print(F("B4")); // FIXME: test b4
+      display.display();
       state = STATE_MAYBE_DOWN;
     }
 
@@ -138,7 +156,7 @@ void loop() {
   case STATE_MAYBE_DOWN:
     if (millis() > timer) {
       // if the timer expired, check for button press
-      if (digitalRead(BUTTON_PIN) == HIGH) {
+      if (digitalRead(B1_PIN) == LOW) {
         // legit button press, handle it
         
         // change text
@@ -163,7 +181,7 @@ void loop() {
     if (millis() > timer) {
       // if the timer has expired, then start checking for
       // button release
-      if (digitalRead(BUTTON_PIN) == LOW) {
+      if (digitalRead(B1_PIN) == HIGH) {
         // set debounce delay
         timer = millis() + DEBOUNCE_DELAY;
         state = STATE_MAYBE_UP;
@@ -175,7 +193,7 @@ void loop() {
     // if the timer has expired, then check for button release
     if (millis() > timer) {
       // set state
-      state = (digitalRead(BUTTON_PIN) == LOW) ? STATE_SHOW : STATE_BUTTON_DOWN;
+      state = (digitalRead(B1_PIN) == HIGH) ? STATE_SHOW : STATE_BUTTON_DOWN;
     }
     
     break;
