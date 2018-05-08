@@ -1,8 +1,13 @@
+// #include <ProTrinketKeyboard.h>
+// #include <cmdline_defs.h>
+// #include <usbconfig.h>
+// #include <ProTrinketKeyboardC.h>
 #include <Adafruit_SSD1306.h>
 #include <jim.h>
 
-// TODO: use internal pullup resistors 
-// reorganize code
+// TODO:
+// [ ] b2: emulate HID keyboard (see https://learn.adafruit.com/pro-trinket-keyboard/library)
+// [ ] b3: about screen
 
 #define UNUSED(a) ((void) (a))
 
@@ -13,10 +18,10 @@
 #define DEBOUNCE_DELAY 20
 
 // button pins
-#define B1_PIN 3
-#define B2_PIN 4
-#define B3_PIN 5
-#define B4_PIN 6
+#define B1_PIN 3 // change text
+#define B2_PIN 4 // TODO: emulate HID keyboard
+#define B3_PIN 5 // about screen
+#define B4_PIN 6 // clear screen
 
 typedef enum {
   STATE_INIT,
@@ -120,6 +125,30 @@ change_text() {
   display.display();
 }
 
+static const char ABOUT_TEXT[] PROGMEM =
+  "Pocket Jim!\n"
+  "\n"
+  "Corporate BS, on the go.\n"
+  "\n"
+  "pmdn.org/pocket-jim";
+
+static void
+about_screen() {
+  // clear screen
+  display.clearDisplay();
+  display.setCursor(0, 0);
+
+  // copy about text to buffer
+  char buf[64];
+  strcpy_P(buf, ABOUT_TEXT);
+
+  // draw about text
+  display.print(buf);
+
+  // refresh
+  display.display();
+}
+
 void loop() {
   switch (state) {
   case STATE_INIT:
@@ -139,14 +168,15 @@ void loop() {
       timer = millis() + DEBOUNCE_DELAY;
       state = STATE_MAYBE_DOWN;
     } else if (digitalRead(B2_PIN) == LOW) {
+      // TODO: https://learn.adafruit.com/pro-trinket-keyboard/library
       display.print(F("B2")); // FIXME: test b2
       display.display();
       state = STATE_MAYBE_DOWN;
     } else if (digitalRead(B3_PIN) == LOW) {
-      display.print(F("B3")); // FIXME: test b3
-      display.display();
-      state = STATE_MAYBE_DOWN;
+      // show about screen
+      about_screen();
     } else if (digitalRead(B4_PIN) == LOW) {
+      // clear display
       display.clearDisplay();
       display.display();
     }
