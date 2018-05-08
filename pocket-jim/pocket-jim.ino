@@ -147,9 +147,8 @@ void loop() {
       display.display();
       state = STATE_MAYBE_DOWN;
     } else if (digitalRead(B4_PIN) == LOW) {
-      display.print(F("B4")); // FIXME: test b4
+      display.clearDisplay();
       display.display();
-      state = STATE_MAYBE_DOWN;
     }
 
     break;
